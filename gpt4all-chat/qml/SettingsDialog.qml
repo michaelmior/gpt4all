@@ -5,7 +5,9 @@ import QtQuick.Controls.Basic
 import QtQuick.Dialogs
 import QtQuick.Layouts
 import Qt.labs.folderlistmodel
+import chatlistmodel
 import download
+import modellist
 import network
 import llm
 
@@ -27,7 +29,7 @@ Dialog {
         Network.sendSettingsDialog();
     }
 
-    property var currentChat: LLM.chatListModel.currentChat
+    property var currentChat: ChatListModel.currentChat
 
     Theme {
         id: theme
@@ -47,7 +49,7 @@ Dialog {
     property string defaultPromptTemplate: "### Human:
 %1
 ### Assistant:\n"
-    property string defaultModelPath: Download.defaultLocalModelsPath()
+    property string defaultModelPath: ModelList.defaultLocalModelsPath()
     property string defaultUserDefaultModel: "Application default"
 
     property alias temperature: settings.temperature
@@ -102,20 +104,20 @@ Dialog {
         settings.saveChatGPTChats = defaultSaveChatGPTChats
         settings.serverChat = defaultServerChat
         settings.userDefaultModel = defaultUserDefaultModel
-        Download.downloadLocalModelsPath = settings.modelPath
+        ModelList.localModelsPath = settings.modelPath
         LLM.threadCount = settings.threadCount
         LLM.serverEnabled = settings.serverChat
-        LLM.chatListModel.shouldSaveChats = settings.saveChats
-        LLM.chatListModel.shouldSaveChatGPTChats = settings.saveChatGPTChats
+        ChatListModel.shouldSaveChats = settings.saveChats
+        chatListModel.shouldSaveChatGPTChats = settings.saveChatGPTChats
         settings.sync()
     }
 
     Component.onCompleted: {
         LLM.threadCount = settings.threadCount
         LLM.serverEnabled = settings.serverChat
-        LLM.chatListModel.shouldSaveChats = settings.saveChats
-        LLM.chatListModel.shouldSaveChatGPTChats = settings.saveChatGPTChats
-        Download.downloadLocalModelsPath = settings.modelPath
+        ChatListModel.shouldSaveChats = settings.saveChats
+        ChatListModel.shouldSaveChatGPTChats = settings.saveChatGPTChats
+        ModelList.localModelsPath = settings.modelPath
     }
 
     Connections {
@@ -615,33 +617,27 @@ Dialog {
                         Layout.row: 1
                         Layout.column: 1
                         Layout.minimumWidth: 350
-                        model: modelList
+                        model: ModelList
                         Accessible.role: Accessible.ComboBox
                         Accessible.name: qsTr("ComboBox for displaying/picking the default model")
                         Accessible.description: qsTr("Use this for picking the default model to use; the first item is the current default model")
-                        function updateModel(newModelList) {
-                            var newArray = Array.from(newModelList);
-                            newArray.unshift('Application default');
-                            comboBox.model = newArray;
-                            settings.sync();
-                            comboBox.currentIndex = comboBox.indexOfValue(settingsDialog.userDefaultModel);
+//                        function updateModel(newModelList) {
+//                            var newArray = Array.from(newModelList);
+//                            newArray.unshift('Application default');
+//                            comboBox.model = newArray;
+//                            settings.sync();
+//                            comboBox.currentIndex = comboBox.indexOfValue(settingsDialog.userDefaultModel);
 
-                        }
-                        Component.onCompleted: {
-                            comboBox.updateModel(currentChat.modelList)
-                        }
-                        Connections {
-                            target: settings
-                            function onUserDefaultModelChanged() {
-                                comboBox.updateModel(currentChat.modelList)
-                            }
-                        }
-                        Connections {
-                            target: currentChat
-                            function onModelListChanged() {
-                                comboBox.updateModel(currentChat.modelList)
-                            }
-                        }
+//                        }
+//                        Component.onCompleted: {
+//                            comboBox.updateModel(currentChat.modelList)
+//                        }
+//                        Connections {
+//                            target: settings
+//                            function onUserDefaultModelChanged() {
+//                                comboBox.updateModel(currentChat.modelList)
+//                            }
+//                        }
                         onActivated: {
                             settingsDialog.userDefaultModel = comboBox.currentText
                             settings.sync()
@@ -650,11 +646,11 @@ Dialog {
                     FolderDialog {
                         id: modelPathDialog
                         title: "Please choose a directory"
-                        currentFolder: "file://" + Download.downloadLocalModelsPath
+                        currentFolder: "file://" + ModelList.localModelsPath
                         onAccepted: {
                             modelPathDisplayField.text = selectedFolder
-                            Download.downloadLocalModelsPath = modelPathDisplayField.text
-                            settings.modelPath = Download.downloadLocalModelsPath
+                            ModelList.localModelsPath = modelPathDisplayField.text
+                            settings.modelPath = ModelList.localModelsPath
                             settings.sync()
                         }
                     }
@@ -667,7 +663,7 @@ Dialog {
                     }
                     MyDirectoryField {
                         id: modelPathDisplayField
-                        text: Download.downloadLocalModelsPath
+                        text: ModelList.localModelsPath
                         implicitWidth: 300
                         Layout.row: 2
                         Layout.column: 1
@@ -679,11 +675,11 @@ Dialog {
                         Accessible.description: ToolTip.text
                         onEditingFinished: {
                             if (isValid) {
-                                Download.downloadLocalModelsPath = modelPathDisplayField.text
-                                settings.modelPath = Download.downloadLocalModelsPath
+                                ModelList.localModelsPath = modelPathDisplayField.text
+                                settings.modelPath = ModelList.localModelsPath
                                 settings.sync()
                             } else {
-                                text = Download.downloadLocalModelsPath
+                                text = ModelList.localModelsPath
                             }
                         }
                     }
@@ -741,7 +737,7 @@ Dialog {
                         onClicked: {
                             Network.sendSaveChatsToggled(saveChatsBox.checked);
                             settingsDialog.saveChats = saveChatsBox.checked
-                            LLM.chatListModel.shouldSaveChats = saveChatsBox.checked
+                            ChatListModel.shouldSaveChats = saveChatsBox.checked
                             settings.sync()
                         }
                         ToolTip.text: qsTr("WARNING: Saving chats to disk can be ~2GB per chat")
@@ -761,7 +757,7 @@ Dialog {
                         checked: settingsDialog.saveChatGPTChats
                         onClicked: {
                             settingsDialog.saveChatGPTChats = saveChatGPTChatsBox.checked
-                            LLM.chatListModel.shouldSaveChatGPTChats = saveChatGPTChatsBox.checked
+                            ChatListModel.shouldSaveChatGPTChats = saveChatGPTChatsBox.checked
                             settings.sync()
                         }
                     }

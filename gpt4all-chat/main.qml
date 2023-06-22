@@ -5,7 +5,9 @@ import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import Qt5Compat.GraphicalEffects
 import llm
+import chatlistmodel
 import download
+import modellist
 import network
 import gpt4all
 
@@ -22,7 +24,7 @@ Window {
         id: theme
     }
 
-    property var currentChat: LLM.chatListModel.currentChat
+    property var currentChat: ChatListModel.currentChat
     property var chatModel: currentChat.chatModel
     property bool hasSaved: false
 
@@ -31,12 +33,12 @@ Window {
             return;
 
         savingPopup.open();
-        LLM.chatListModel.saveChats();
+        ChatListModel.saveChats();
         close.accepted = false
     }
 
     Connections {
-        target: LLM.chatListModel
+        target: ChatListModel
         function onSaveChatsFinished() {
             window.hasSaved = true;
             savingPopup.close();
@@ -96,7 +98,7 @@ Window {
         }
 
         // check for any current models and if not, open download dialog
-        if (currentChat.modelList.length === 0 && !firstStartDialog.opened) {
+        if (ModelList.count === 0 && !firstStartDialog.opened) {
             downloadNewModels.open();
             return;
         }
@@ -180,12 +182,20 @@ Window {
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.horizontalCenterOffset: window.width >= 950 ? 0 : Math.max(-((950 - window.width) / 2), -99.5)
                 enabled: !currentChat.isServer
-                model: currentChat.modelList
+                model: ModelList.installedModels
+                valueRole: "filename"
+                textRole: "filename"
+                Connections {
+                    target: currentChat
+                    function onModelInfoChanged() {
+                        comboBox.currentIndex = comboBox.indexOfValue(currentChat.modelInfo.filename)
+                    }
+                }
                 contentItem: Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     leftPadding: 10
                     rightPadding: 20
-                    text: currentChat.modelLoadingError !== "" ? "Model loading error..." : comboBox.displayText
+                    text: currentChat.modelLoadingError !== "" ? qsTr("Model loading error...") : comboBox.displayText
                     font: comboBox.font
                     color: theme.textColor
                     verticalAlignment: Text.AlignVCenter
@@ -195,7 +205,7 @@ Window {
                 delegate: ItemDelegate {
                     width: comboBox.width
                     contentItem: Text {
-                        text: modelData
+                        text: name !== "" ? name : filename
                         color: theme.textColor
                         font: comboBox.font
                         elide: Text.ElideRight
@@ -210,9 +220,10 @@ Window {
                 Accessible.name: qsTr("ComboBox for displaying/picking the current model")
                 Accessible.description: qsTr("Use this for picking the current model to use; the first item is the current model")
                 onActivated: {
+                    console.log("current " + comboBox.currentText)
                     currentChat.stopGenerating()
                     currentChat.reset();
-                    currentChat.modelName = comboBox.currentText
+                    currentChat.modelInfo = ModelList.modelInfo(comboBox.valueAt(comboBox.currentIndex))
                 }
             }
         }
@@ -817,7 +828,7 @@ Window {
                 }
 
                 Image {
-                    visible: currentChat.isServer || currentChat.modelName.startsWith("chatgpt-")
+                    visible: currentChat.isServer || currentChat.modelInfo.isChatGPT
                     anchors.fill: parent
                     sourceSize.width: 1024
                     sourceSize.height: 1024

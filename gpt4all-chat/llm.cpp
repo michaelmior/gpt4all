@@ -1,6 +1,7 @@
 #include "llm.h"
 #include "config.h"
-#include "download.h"
+#include "chatlistmodel.h"
+#include "../gpt4all-backend/llmodel.h"
 #include "network.h"
 
 #include <QCoreApplication>
@@ -20,7 +21,6 @@ LLM *LLM::globalInstance()
 
 LLM::LLM()
     : QObject{nullptr}
-    , m_chatListModel(new ChatListModel(this))
     , m_threadCount(std::min(4, (int32_t) std::thread::hardware_concurrency()))
     , m_serverEnabled(false)
     , m_compatHardware(true)
@@ -39,7 +39,7 @@ LLM::LLM()
 #endif
     LLModel::setImplementationsSearchPath(llmodelSearchPaths.toStdString());
     connect(this, &LLM::serverEnabledChanged,
-        m_chatListModel, &ChatListModel::handleServerEnabledChanged);
+        ChatListModel::globalInstance(), &ChatListModel::handleServerEnabledChanged);
 
 #if defined(__x86_64__)
     #ifndef _MSC_VER

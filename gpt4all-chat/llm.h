@@ -3,12 +3,9 @@
 
 #include <QObject>
 
-#include "chatlistmodel.h"
-
 class LLM : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(ChatListModel *chatListModel READ chatListModel NOTIFY chatListModelChanged)
     Q_PROPERTY(int32_t threadCount READ threadCount WRITE setThreadCount NOTIFY threadCountChanged)
     Q_PROPERTY(bool serverEnabled READ serverEnabled WRITE setServerEnabled NOTIFY serverEnabledChanged)
     Q_PROPERTY(bool compatHardware READ compatHardware NOTIFY compatHardwareChanged)
@@ -16,7 +13,6 @@ class LLM : public QObject
 public:
     static LLM *globalInstance();
 
-    ChatListModel *chatListModel() const { return m_chatListModel; }
     int32_t threadCount() const;
     void setThreadCount(int32_t n_threads);
     bool serverEnabled() const;
@@ -30,12 +26,12 @@ public:
 
 Q_SIGNALS:
     void chatListModelChanged();
+    void modelListChanged();
     void threadCountChanged();
     void serverEnabledChanged();
     void compatHardwareChanged();
 
 private:
-    ChatListModel *m_chatListModel;
     int32_t m_threadCount;
     bool m_serverEnabled;
     bool m_compatHardware;
